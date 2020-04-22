@@ -1,0 +1,7 @@
+/node_modules
+yarn.lock
+session.data.json
+yarn-error.log
+cache
+db.json
+.env
