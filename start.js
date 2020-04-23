@@ -16,16 +16,17 @@ function start(client) {
 
     if (isTwitterUrl(message.body)) {
       client.reply(message.from, "🔍Extracting Video", messageId);
-      client.simulateTyping(message.from, true);
 
       try {
         const { mediaUrls } = await getVideo(message.body);
         const fileURL = mediaUrls[0].url;
         const tweetId = getTweetId(message.body);
         const possiblePath = `${process.env.FILE_CACHE_DIRECTORY}/${tweetId}.mp4`;
-
         const fileWasPreviouslyCached = fs.existsSync(possiblePath);
 
+        /****************
+         * CACHING CACHING
+         ***************/
         if (fileWasPreviouslyCached) {
           db.update("entries", tweetId, { lastFetched: Date.now() }).write(); //UPDATE ENTRY IN DB
         } else {
@@ -47,11 +48,9 @@ function start(client) {
           "",
           messageId
         );
-        client.simulateTyping(message.from, false);
       } catch (error) {
         console.log(error);
         client.reply(message.from, error, messageId);
-        client.simulateTyping(message.from, false);
       }
     }
   });

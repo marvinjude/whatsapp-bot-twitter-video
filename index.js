@@ -3,6 +3,7 @@ const start = require("./start.js");
 const schedule = require("node-schedule");
 const DB = require("./db.js");
 const fs = require("fs");
+const { hoursAgo, logger } = require("./utils");
 require("dotenv").config();
 
 WhatsApp.create({
@@ -11,13 +12,11 @@ WhatsApp.create({
 }).then((client) => start(client));
 
 /*******************************************
- * Everyday, delete old Cached files
+ * Everyday at 00:00, delete old Cached files
  *******************************************/
 schedule.scheduleJob("0 0 * * *", function () {
   const db = new DB();
-  const date = new Date();
-  date.setHours(date.getHours() - process.env.HOURS_BEFORE_CACHED_FILE_DELETE);
-  const someTimeAgo = date.getTime();
+  const someTimeAgo = hoursAgo(process.env.HOURS_BEFORE_CACHED_FILE_DELETE);
 
   const entriesToDelete = db
     .get("entries")
@@ -25,7 +24,7 @@ schedule.scheduleJob("0 0 * * *", function () {
 
   for ({ id: tweetId } of entriesToDelete)
     fs.unlink(`${process.env.FILE_CACHE_DIRECTORY}/${tweetId}.mp4`, (error) => {
-      if (!error) console.log(`UNLINKED: ${tweetId}.mp4`);
-      else console.log(`UNABLE TO UNLIK: ${tweetId}.mp4`);
+      if (!error) logger("INFO", `UNLINKED ${tweetId}.mp4`);
+      else logger("INFO", `UNABLE TO UNLIK: ${tweetId}.mp4`);
     });
 });

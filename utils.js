@@ -1,7 +1,6 @@
 const Twitt = require("twitter");
 const cache = require("memory-cache");
 const fs = require("fs");
-const fetch = require("node-fetch");
 
 require("dotenv").config();
 
@@ -20,20 +19,34 @@ const getTweetId = (tweetURL) => {
   return tweetIdwithQs.split("?")[0];
 };
 
+const logger = (type, description) =>
+  void console.log(`${type}: ${description}`);
+
+const hoursAgo = (hours) => {
+  const date = new Date();
+  date.setHours(date.getHours() - hours);
+  return date.getTime();
+};
+
 function getVideo(tweetURL) {
-  const twittOpts = {
-    tweet_mode: "extended",
-  };
-  let memCache = new cache.Cache();
-  const isThisATwitterURL = isTwitterUrl(tweetURL);
+  const twittOpts = { tweet_mode: "extended" };
+
+  const memCache = new cache.Cache();
 
   const tweetId = getTweetId(tweetURL);
 
-  if (!isThisATwitterURL) Promise.reject("This isn't a twitter URL");
+  if (!isTwitterUrl(tweetURL)) Promise.reject("This isn't a twitter URL");
 
-  /**Return caached response for this tweet id if available */
-  let cacheContent = memCache.get(tweetId);
-  if (cacheContent) return Promise.resolve(cacheContent);
+  /**
+     Return cached response for this tweet id if available
+   */
+
+  const cacheContent = memCache.get(tweetId);
+
+  if (cacheContent) {
+    logger("INFO", `Responded from cache for ${tweetId}`);
+    return Promise.resolve(cacheContent);
+  }
 
   return new Promise((resolve, reject) => {
     twitter.get(
@@ -51,9 +64,11 @@ function getVideo(tweetURL) {
             const mediaUrls = tweetData.extended_entities.media[0].video_info.variants.filter(
               (file) => file.content_type == "video/mp4"
             );
-
-            /**Cache the fucking API response for this tweet ID */
+            
+            logger("INFO", `caching response for tweet id ${tweetId}`);
+            /**Cache the API response for this tweet ID */
             memCache.put(tweetId, { response, mediaUrls }, 3600000);
+
             resolve({ response, mediaUrls });
           } else {
             reject("This tweet contains no video");
@@ -87,4 +102,6 @@ module.exports = {
   getVideo,
   isTwitterUrl,
   getTweetId,
+  logger,
+  hoursAgo,
 };
